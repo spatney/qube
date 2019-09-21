@@ -1,6 +1,6 @@
 {
   "name": "qube",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Simple implementation of an in-memory analytics cube. ",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type" : "git",
-    "url" : "https://www.npmjs.com/package/qube"
+    "url" : "https://github.com/spatney/qube"
   },
   "author": "Sachin Patney",
   "license": "MIT"
