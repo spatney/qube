@@ -1,3 +1,5 @@
+[![npm package](https://nodei.co/npm/qube.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/qube/)
+
 # Qube
 
 ## What is this?
