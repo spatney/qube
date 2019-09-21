@@ -4,7 +4,7 @@ const products = ['Apple', 'Orange', 'Pear'];
 
 const sampleOptions = {
     measures: [
-        { type: 'sum', key: 'sales' }
+        { type: 'sum', key: 'sales', name: 'm_sales' }
     ],
     dimensions: [
         { type: 'string', key: 'year' },
@@ -14,7 +14,7 @@ const sampleOptions = {
 }
 
 const sampleSliceOptions = {
-    measure: 'sales',
+    measure: 'm_sales',
     dimensions: {
         year: '2017',
         location: 'Seattle',
@@ -22,12 +22,16 @@ const sampleSliceOptions = {
 };
 
 const sampleDiceOptions = {
-    measure: 'sales',
+    measure: 'm_sales',
     dimensions: {
         year: '2017',
         location: 'Seattle',
         product: 'Apple'
     }
+};
+
+const sampleOneOptions = {
+    measure: 'm_sales',
 };
 
 function getRandomInt(max) {
@@ -47,5 +51,6 @@ module.exports = {
     diceOptions: sampleDiceOptions,
     options: sampleOptions,
     sliceOptions: sampleSliceOptions,
-    generateRandomRow: generateRandomRow
+    generateRandomRow: generateRandomRow,
+    oneOptions: sampleOneOptions
 }

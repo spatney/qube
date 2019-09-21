@@ -9,7 +9,6 @@ class Qube {
         ];
 
         this.cube = {};
-        this.oneValue = 0;
     }
 
     push(rows) {
@@ -27,24 +26,35 @@ class Qube {
         const dim1 = row[this.dimIndex[0]];
         const dim2 = row[this.dimIndex[1]];
         const dim3 = row[this.dimIndex[2]];
-        const val1 = row['sales'];
 
         const cube = this.cube;
         cube[dim1] = cube[dim1] || {};
         cube[dim1][dim2] = cube[dim1][dim2] || {};
+        cube[dim1][dim2][dim3] = cube[dim1][dim2][dim3] || {};
 
-        cube[dim1][dim2][dim3] = cube[dim1][dim2][dim3] != null
-            ? cube[dim1][dim2][dim3] + val1
-            : val1;
+        const measures = this.options.measures;
+        for (const m of measures) {
+            const key = m.key;
+            const type = m.type;
+            const name = m.name;
 
-        this.oneValue += val1;
+            if (type === 'sum') {
+                const val = row[key];
+                cube[dim1][dim2][dim3][name] = cube[dim1][dim2][dim3][name] != null
+                    ? cube[dim1][dim2][dim3][name] + val
+                    : val;
+            }
+        }
+
+        //this.oneValue += val1;
     }
 
     slice(opts) {
         const dims = opts.dimensions;
+        const measureName = opts.measure;
         const dimKeys = Object.keys(dims);
-        const dim1Index = this.dimIndex.findIndex(d => d === dimKeys[0]);
-        const dim2Index = this.dimIndex.findIndex(d => d === dimKeys[1]);
+        const dim1Index = dimKeys.length === 2 ? this.dimIndex.findIndex(d => d === dimKeys[0]) : -1;
+        const dim2Index = dimKeys.length === 2 ? this.dimIndex.findIndex(d => d === dimKeys[1]) : -1;
 
         let result;
 
@@ -70,10 +80,21 @@ class Qube {
                     kKeys = [dims[this.dimIndex[dim2Index]]].filter(x => kKeys.includes(x));
 
                 for (let k = 0; k < kKeys.length; k++) {
-                    if(result === undefined) {
-                        result = 0;
+
+                    const diceValue = this.cube[iKeys[i]][fKeys[f]][kKeys[k]];
+
+                    if (diceValue != null) {
+                        const measureValue = this.cube[iKeys[i]][fKeys[f]][kKeys[k]][measureName];
+                        if (measureValue != null) {
+                            if (result === undefined) {
+                                result = 0;
+                            }
+
+                            if (this.options.measures.filter(d => d.name === measureName)[0].type === 'sum') {
+                                result += measureValue;
+                            }
+                        }
                     }
-                    result += this.cube[iKeys[i]][fKeys[f]][kKeys[k]];
                 }
             }
         }
@@ -83,21 +104,32 @@ class Qube {
 
     dice(opts) {
         const dims = opts.dimensions;
+        const measureName = opts.measure;
 
         const dim1 = dims[this.dimIndex[0]];
         const dim2 = dims[this.dimIndex[1]];
         const dim3 = dims[this.dimIndex[2]];
 
         const cube = this.cube;
-        if (cube[dim1] && cube[dim1][dim2] && (cube[dim1][dim2][dim3] != null)) {
-            return cube[dim1][dim2][dim3]
+        if (cube[dim1] && cube[dim1][dim2] && cube[dim1][dim2][dim3] && (cube[dim1][dim2][dim3][measureName] != null)) {
+            return cube[dim1][dim2][dim3][measureName];
         }
 
         return undefined;
     }
 
-    one() {
-        return this.oneValue;
+    one(opts) {
+        const measureName = opts.measure;
+        return this.slice({ dimensions: {}, measure: measureName });
+    }
+
+    serializeCube() {
+        return JSON.stringify({
+            options: this.options,
+            dimIndex: this.dimIndex,
+            storage: this.storage,
+            cube: this.cube
+        }, null, 2);
     }
 }
 
