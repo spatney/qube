@@ -7,6 +7,8 @@ Sinple implementation of an in-memory analytics cube.
 ## How to use it?
 
 ```javascript
+const Qube = require('qube');
+
 const qubeOptions = { // options to initialize qube
     measures: [ // what kind of calcs do you want to store in the cube. 
         { type: 'sum', key: 'sales', name: 'm_sales' }
