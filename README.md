@@ -68,3 +68,7 @@ Total Orange sales in Portland in 2018: 20
 1. support count, min, max, average, first, last
 2. support plug & play storage
 3. parallelize slice, dice & one (i.e map reduce) 
+
+## Contribute
+
+Contributions are welcome! Though I would suggest you discussing your change through issues first, so to avoid throw away work. Also contributions in terms of pure ideas are welcome too!
