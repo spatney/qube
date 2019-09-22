@@ -5,7 +5,7 @@
 </div>
 
 
-# <img src="https://envy.azureedge.net/github/cube.png" width="30" height="30"> Qube 
+# <img src="https://envy.azureedge.net/github/cube.png" width="30" height="30">ube 
 
 ## What is this?
 
