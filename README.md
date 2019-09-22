@@ -3,7 +3,8 @@
 <span class="badge-npmversion"><a href="https://npmjs.org/package/qube" title="View this project on NPM"><img src="https://img.shields.io/npm/v/qube.svg" alt="NPM version" /></a></span>
 <span class="badge-npmdownloads"><a href="https://npmjs.org/package/qube" title="View this project on NPM"><img src="https://img.shields.io/npm/dm/qube.svg" alt="NPM downloads" /></a></span>
 </div>
-<img src="https://envy.azureedge.net/github/cube.png" width="100" height="100">
+
+<img src="https://envy.azureedge.net/github/cube.png" width="100" height="100" style="margin:10px">
 
 # Qube
 
