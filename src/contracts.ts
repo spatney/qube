@@ -20,5 +20,5 @@ export interface QueryOptions {
 }
 
 export interface InMemoryQubeData {
-    
+    [key: string]: InMemoryQubeData | number
 }

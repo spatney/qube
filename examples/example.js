@@ -1,4 +1,4 @@
-declare var Qube: any;
+const Qube = require('../dist/index').Qube;
 
 const qubeOptions = { // options to initialize qube
     measures: [ // what kind of calcs do you want to store in the cube. 

@@ -5,20 +5,16 @@
         ],
         "outDir": "./dist/",
         "declaration": true,
-        "noImplicitAny": true,
-        "sourceMap": true,
         "module": "commonjs",
         "moduleResolution": "node",
         "removeComments": true,
-        "target": "es5",
-        "jsx": "react"
+        "target": "es5"
     },
     "include": [
         "src"
     ],
     "exclude": [
         "node_modules",
-        "**/__tests__/*",
-        "**/examples/*"
+        "examples"
     ]
 }

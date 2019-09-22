@@ -1,13 +1,13 @@
 import {
     QubeOptions,
-    InMemoryQubeData,
-    QueryOptions
+    QueryOptions,
+    InMemoryQubeData
 } from './contracts';
 
 export class Qube {
 
     private dimensionIndices: string[];
-    private cubeData: any;
+    private cubeData: InMemoryQubeData;
 
     constructor(private options: QubeOptions) {
         this.dimensionIndices = [
