@@ -1,13 +1,15 @@
 const Qube = require('./index');
 const sampleData = require('./sample-data');
 
-const myQube = new Qube(sampleData.options);
+let myQube = new Qube(sampleData.options);
 const rows = [];
 
 console.time('data-gen');
 for(let i=0; i<1000; i++) {
     rows.push(sampleData.generateRandomRow());
 }
+
+myQube = Qube.fromCube(myQube.serializeCube());
 console.timeEnd('data-gen');
 
 console.time('push');

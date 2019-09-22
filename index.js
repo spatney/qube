@@ -137,6 +137,14 @@ class Qube {
             cube: this.cube
         }, null, 2);
     }
+
+    static fromCube(jsonString) {
+        const data = JSON.parse(jsonString);
+        const cube = new Qube(data.options);
+        cube.cube = data.cube;
+
+        return cube;
+    }
 }
 
 module.exports = Qube;
