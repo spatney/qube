@@ -28,3 +28,7 @@ export interface SerializedQube {
     dimensionIndices: string[],
     cube: InMemoryQubeData
 }
+
+export interface QubeRow {
+    [key: string] : any;
+}

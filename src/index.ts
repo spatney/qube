@@ -2,7 +2,8 @@ import {
     QubeOptions,
     QueryOptions,
     InMemoryQubeData,
-    SerializedQube
+    SerializedQube,
+    QubeRow
 } from './contracts';
 
 export class Qube {
@@ -20,39 +21,39 @@ export class Qube {
         this.cubeData = {};
     }
 
-    push(rows: { [key: string]: any }[]) {
-        for (let row of rows) {
-            this.aggregateRow(row);
-        }
-    }
-
-    private aggregateRow(row: { [key: string]: any }) {
+    push(rows: QubeRow[]) {
         const cube = this.cubeData;
         const measures = this.options.measures;
         const dimensionIndices = this.dimensionIndices;
-        const dimensionOne = row[dimensionIndices[0]];
-        const dimensionTwo = row[dimensionIndices[1]];
-        const dimensionThree = row[dimensionIndices[2]];
 
-        cube[dimensionOne] = cube[dimensionOne] || {};
-        cube[dimensionOne][dimensionTwo] = cube[dimensionOne][dimensionTwo] || {};
-        cube[dimensionOne][dimensionTwo][dimensionThree] = cube[dimensionOne][dimensionTwo][dimensionThree] || {};
-
-        for (const m of measures) {
-            const key = m.key;
-            const type = m.type;
-            const name = m.name;
-
-            if (type === 'sum') {
-                const val = row[key];
-                cube[dimensionOne][dimensionTwo][dimensionThree][name] = cube[dimensionOne][dimensionTwo][dimensionThree][name] != null
-                    ? cube[dimensionOne][dimensionTwo][dimensionThree][name] + val
-                    : val;
+        for (const row of rows) {
+            const dimensionOne = row[dimensionIndices[0]];
+            const dimensionTwo = row[dimensionIndices[1]];
+            const dimensionThree = row[dimensionIndices[2]];
+    
+            cube[dimensionOne] = cube[dimensionOne] || {};
+            cube[dimensionOne][dimensionTwo] = cube[dimensionOne][dimensionTwo] || {};
+            cube[dimensionOne][dimensionTwo][dimensionThree] = cube[dimensionOne][dimensionTwo][dimensionThree] || {};
+    
+            for (const m of measures) {
+                const val = row[m.key];
+    
+                if (val != null) {
+                    const type = m.type;
+                    const measureName = m.name;
+    
+                    if (type === 'sum') {
+                        cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
+                            = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
+                                ? cube[dimensionOne][dimensionTwo][dimensionThree][measureName] + val
+                                : val;
+                    }
+                }
             }
         }
     }
 
-    slice(opts: QueryOptions): number {
+    slice(opts: QueryOptions): number | undefined {
         const dimensionIndices = this.dimensionIndices;
         const cube = this.cubeData;
         const options = this.options;
@@ -63,7 +64,7 @@ export class Qube {
         const firstDimensionIndex = dimensionKeys.length === 2 ? dimensionIndices.findIndex(d => d === dimensionKeys[0]) : -1;
         const secondDimensionIndex = dimensionKeys.length === 2 ? dimensionIndices.findIndex(d => d === dimensionKeys[1]) : -1;
 
-        let result;
+        let result: number | undefined;
 
         let iKeys = Object.keys(cube) || [];
 
@@ -93,7 +94,7 @@ export class Qube {
                     if (diceValue != null) {
                         const measureValue = cube[iKeys[i]][fKeys[f]][kKeys[k]][measureName];
                         if (measureValue != null) {
-                            if (result === undefined) {
+                            if (result == null) {
                                 result = 0;
                             }
 
@@ -109,7 +110,7 @@ export class Qube {
         return result;
     }
 
-    dice(opts: QueryOptions): number {
+    dice(opts: QueryOptions):  number | undefined {
         const dimensionIndices = this.dimensionIndices;
         const dimensions = opts.dimensions;
         const measureName = opts.measure;
@@ -130,7 +131,7 @@ export class Qube {
         return undefined;
     }
 
-    one(opts: QueryOptions): number {
+    one(opts: QueryOptions):  number | undefined {
         const measureName = opts.measure;
         return this.slice({ dimensions: {}, measure: measureName });
     }

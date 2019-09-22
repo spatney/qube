@@ -1,12 +1,13 @@
 {
   "name": "qube",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "description": "Simple implementation of an in-memory analytics cube. ",
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "deploy": "rm -rf ./dist && tsc && npm publish"
+    "deploy": "rm -rf ./dist && tsc && npm publish",
+    "test": "rm -rf ./dist && npm run build && node ./examples/example.js"
   },
   "repository": {
     "type": "git",
