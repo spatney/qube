@@ -22,3 +22,9 @@ export interface QueryOptions {
 export interface InMemoryQubeData {
     [key: string]: InMemoryQubeData | number
 }
+
+export interface SerializedQube {
+    options: QubeOptions,
+    dimensionIndices: string[],
+    cube: InMemoryQubeData
+}

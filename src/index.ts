@@ -1,7 +1,8 @@
 import {
     QubeOptions,
     QueryOptions,
-    InMemoryQubeData
+    InMemoryQubeData,
+    SerializedQube
 } from './contracts';
 
 export class Qube {
@@ -19,18 +20,13 @@ export class Qube {
         this.cubeData = {};
     }
 
-    push(rows: object[]) {
-        if (!Array.isArray(rows)) {
-            console.log('Rows must be an object array');
-            return;
-        }
-
+    push(rows: { [key: string]: any }[]) {
         for (let row of rows) {
             this.aggregateRow(row);
         }
     }
 
-    aggregateRow(row: { [key: string]: any }) {
+    private aggregateRow(row: { [key: string]: any }) {
         const cube = this.cubeData;
         const measures = this.options.measures;
         const dimensionIndices = this.dimensionIndices;
@@ -56,7 +52,7 @@ export class Qube {
         }
     }
 
-    slice(opts: QueryOptions) {
+    slice(opts: QueryOptions): number {
         const dimensionIndices = this.dimensionIndices;
         const cube = this.cubeData;
         const options = this.options;
@@ -113,7 +109,7 @@ export class Qube {
         return result;
     }
 
-    dice(opts: QueryOptions) {
+    dice(opts: QueryOptions): number {
         const dimensionIndices = this.dimensionIndices;
         const dimensions = opts.dimensions;
         const measureName = opts.measure;
@@ -134,24 +130,22 @@ export class Qube {
         return undefined;
     }
 
-    one(opts: QueryOptions) {
+    one(opts: QueryOptions): number {
         const measureName = opts.measure;
         return this.slice({ dimensions: {}, measure: measureName });
     }
 
     serializeCube() {
-        return JSON.stringify({
+        return <SerializedQube>{
             options: this.options,
-            dimIndex: this.dimensionIndices,
+            dimensionIndices: this.dimensionIndices,
             cube: this.cubeData
-        }, null, 2);
+        };
     }
 
-    static fromCube(jsonString: string) {
-        const data = JSON.parse(jsonString);
-        const cube = new Qube(data.options);
-        cube.cubeData = data.cube;
-
+    static fromCube(sQube: SerializedQube) {
+        const cube = new Qube(sQube.options);
+        cube.cubeData = sQube.cube;
         return cube;
     }
 }
