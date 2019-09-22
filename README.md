@@ -5,11 +5,11 @@
 </div>
 
 
-# <img src="https://envy.azureedge.net/github/cube.png" width="30" height="30">ube 
+# <img src="https://envy.azureedge.net/github/cube.png" width="40" height="40">ube 
 
 ## What is this?
 
-Sinple implementation of an in-memory analytics cube. 
+Simple implementation of an in-memory analytics cube. 
 
 ## How to use it?
 
