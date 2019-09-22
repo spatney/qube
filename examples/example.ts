@@ -1,33 +1,4 @@
-const Qube = require('./index');
-const sampleData = require('./sample-data');
-
-let myQube = new Qube(sampleData.options);
-const rows = [];
-
-console.time('data-gen');
-for(let i=0; i<1000; i++) {
-    rows.push(sampleData.generateRandomRow());
-}
-
-myQube = Qube.fromCube(myQube.serializeCube());
-console.timeEnd('data-gen');
-
-console.time('push');
-myQube.push(rows);
-console.timeEnd('push');
-
-console.time('one');
-console.log(`one: ${myQube.one(sampleData.oneOptions)}`);
-console.timeEnd('one');
-
-console.time('slice');
-console.log('slice: ', sampleData.sliceOptions, myQube.slice(sampleData.sliceOptions));
-console.timeEnd('slice');
-
-console.time('dice');
-console.log('dice: ', sampleData.diceOptions, myQube.dice(sampleData.diceOptions));
-console.timeEnd('dice');
-
+declare var Qube: any;
 
 const qubeOptions = { // options to initialize qube
     measures: [ // what kind of calcs do you want to store in the cube. 

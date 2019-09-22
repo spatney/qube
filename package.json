@@ -1,15 +1,19 @@
 {
   "name": "qube",
-  "version": "1.1.0",
+  "version": "2.1.0",
   "description": "Simple implementation of an in-memory analytics cube. ",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "deploy": "tsc && npm publish"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/spatney/qube"
+    "type": "git",
+    "url": "https://github.com/spatney/qube"
   },
   "author": "Sachin Patney",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^3.6.3"
+  }
 }

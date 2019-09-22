@@ -1,17 +1,25 @@
-class Qube {
-    constructor(options) {
-        this.options = options;
-        this.storage = 'in-memory'; // more to come
+import {
+    QubeOptions,
+    InMemoryQubeData,
+    QueryOptions
+} from './contracts';
+
+export class Qube {
+
+    private dimensionIndices: string[];
+    private cubeData: any;
+
+    constructor(private options: QubeOptions) {
         this.dimensionIndices = [
             options.dimensions[0].key,
             options.dimensions[1].key,
             options.dimensions[2].key
         ];
 
-        this.cube = {};
+        this.cubeData = {};
     }
 
-    push(rows) {
+    push(rows: object[]) {
         if (!Array.isArray(rows)) {
             console.log('Rows must be an object array');
             return;
@@ -22,8 +30,8 @@ class Qube {
         }
     }
 
-    aggregateRow(row) {
-        const cube = this.cube;
+    aggregateRow(row: { [key: string]: any }) {
+        const cube = this.cubeData;
         const measures = this.options.measures;
         const dimensionIndices = this.dimensionIndices;
         const dimensionOne = row[dimensionIndices[0]];
@@ -46,13 +54,11 @@ class Qube {
                     : val;
             }
         }
-
-        //this.oneValue += val1;
     }
 
-    slice(opts) {
+    slice(opts: QueryOptions) {
         const dimensionIndices = this.dimensionIndices;
-        const cube = this.cube;
+        const cube = this.cubeData;
         const options = this.options;
 
         const dimensions = opts.dimensions;
@@ -107,7 +113,7 @@ class Qube {
         return result;
     }
 
-    dice(opts) {
+    dice(opts: QueryOptions) {
         const dimensionIndices = this.dimensionIndices;
         const dimensions = opts.dimensions;
         const measureName = opts.measure;
@@ -116,15 +122,19 @@ class Qube {
         const dimensionTwo = dimensions[dimensionIndices[1]];
         const dimensionThree = dimensions[dimensionIndices[2]];
 
-        const cube = this.cube;
-        if (cube[dimensionOne] && cube[dimensionOne][dimensionTwo] && cube[dimensionOne][dimensionTwo][dimensionThree] && (cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null)) {
+        const cube = this.cubeData;
+        if (cube[dimensionOne]
+            && cube[dimensionOne][dimensionTwo]
+            && cube[dimensionOne][dimensionTwo][dimensionThree]
+            && (cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null)) {
+
             return cube[dimensionOne][dimensionTwo][dimensionThree][measureName];
         }
 
         return undefined;
     }
 
-    one(opts) {
+    one(opts: QueryOptions) {
         const measureName = opts.measure;
         return this.slice({ dimensions: {}, measure: measureName });
     }
@@ -133,18 +143,15 @@ class Qube {
         return JSON.stringify({
             options: this.options,
             dimIndex: this.dimensionIndices,
-            storage: this.storage,
-            cube: this.cube
+            cube: this.cubeData
         }, null, 2);
     }
 
-    static fromCube(jsonString) {
+    static fromCube(jsonString: string) {
         const data = JSON.parse(jsonString);
         const cube = new Qube(data.options);
-        cube.cube = data.cube;
+        cube.cubeData = data.cube;
 
         return cube;
     }
 }
-
-module.exports = Qube;

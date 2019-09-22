@@ -1,3 +1,5 @@
 .vscode
-sample-data.js
-test.js
+src/
+examples/
+tsconfig.json
+node_modules/
