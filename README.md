@@ -58,8 +58,8 @@ Expected Output
 ----------------
 
 Total Sales: 80
-Total Apple sales in Seattle: 35
-Total Orange sales in Portland in 2018: 20
+Apple sales in Seattle: 35
+Portland Orange sales in 2018: 20
 */
 ```
 
