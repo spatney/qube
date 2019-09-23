@@ -1,9 +1,7 @@
-
-<div>
 <span class="badge-npmversion"><a href="https://npmjs.org/package/qube" title="View this project on NPM"><img src="https://img.shields.io/npm/v/qube.svg" alt="NPM version" /></a></span>
 <span class="badge-npmdownloads"><a href="https://npmjs.org/package/qube" title="View this project on NPM"><img src="https://img.shields.io/npm/dm/qube.svg" alt="NPM downloads" /></a></span>
-</div>
-
+[![Build Status](https://travis-ci.org/spatney/qube.svg?branch=master)](https://travis-ci.org/spatney/qube)
+<div/>
 
 # <img src="https://envy.azureedge.net/github/cube.png" width="40" height="40">ube 
 
