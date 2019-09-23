@@ -43,20 +43,22 @@ qube.push([
     { year: '2019', location: 'Portland', product: 'Orange', sales: 20 },
 ]);
 
+const measureToCompute = 'sum_sales'; // try also with min, max, count
+
 // Total Sales.
-console.log(`Total Sales: ${qube.one({ measure: 'sum_sales' })}`);
+console.log(`Total Sales: ${qube.one({ measure: measureToCompute })}`);
 
 // Total Apple sales in Seattle
 const sliceQuery = {
     dimensions: { product: 'Apple', location: 'Seattle'}, 
-    measure: 'sum_sales' 
+    measure: measureToCompute 
 };
 console.log(`Apple sales in Seattle: ${qube.slice(sliceQuery)}`)
 
 // Total Orange sales in Portland in 2018
 const diceQuery = {
     dimensions: { product: 'Orange', location: 'Portland', year: '2018'}, 
-    measure: 'sum_sales' 
+    measure: measureToCompute
 };
 console.log(`Portland Orange sales in 2018: ${qube.dice(diceQuery)}`)
 
@@ -66,7 +68,7 @@ const result = [];
 
 const sliceToEnumerateQuery = {
     dimensions: { product: 'Orange'}, 
-    measure: 'sum_sales' 
+    measure: measureToCompute
 };
 
 for(const year of years) {
