@@ -9,7 +9,7 @@ import {
 export class Qube {
 
     private dimensionIndices: string[];
-    private cubeData: InMemoryQubeData;
+    private data: InMemoryQubeData;
 
     constructor(private options: QubeOptions) {
         this.dimensionIndices = [
@@ -18,11 +18,11 @@ export class Qube {
             options.dimensions[2].key
         ];
 
-        this.cubeData = {};
+        this.data = {};
     }
 
     push(rows: QubeRow[]) {
-        const cube = this.cubeData;
+        const cube = this.data;
         const measures = this.options.measures;
         const dimensionIndices = this.dimensionIndices;
 
@@ -61,9 +61,42 @@ export class Qube {
         }
     }
 
+    enumerateDimensions(dimensionName: string) {
+        const dimensionIndices = this.dimensionIndices;
+        const dimensionIndex = dimensionIndices.findIndex(d => d === dimensionName);
+        const cube = this.data;
+        let enumerationResult = {};
+
+        let iKeys = Object.keys(cube) || [];
+        for (let i = 0, iLen = iKeys.length; i < iLen; i++) {
+            const iKey = cube[iKeys[i]];
+
+            if (dimensionIndex === 0) {
+                enumerationResult[iKeys[i]] = true;
+            }
+
+            let fKeys = Object.keys(iKey || {}) || [];
+            for (let f = 0, fLen = fKeys.length; f < fLen; f++) {
+                const fKey = iKey[fKeys[f]];
+                let kKeys = Object.keys(fKey || {}) || [];
+
+                if (dimensionIndex === 1) {
+                    enumerationResult[fKeys[f]] = true;
+                }
+                for (let k = 0, kLen = kKeys.length; k < kLen; k++) {
+                    if (dimensionIndex === 2) {
+                        enumerationResult[kKeys[k]] = true;
+                    }
+                }
+            }
+        }
+
+        return Object.keys(enumerationResult);
+    }
+
     slice(opts: QueryOptions): number | undefined {
         const dimensionIndices = this.dimensionIndices;
-        const cube = this.cubeData;
+        const cube = this.data;
         const measures = this.options.measures;
         const dimensions = opts.dimensions;
         const measureName = opts.measure;
@@ -111,7 +144,7 @@ export class Qube {
                             if (result == null) {
                                 result = 0;
                             }
-                            
+
                             if (measureType) {
                                 switch (measureType) {
                                     case 'sum': result += measureValue;
@@ -137,7 +170,7 @@ export class Qube {
         const dimensionTwo = dimensions[dimensionIndices[1]];
         const dimensionThree = dimensions[dimensionIndices[2]];
 
-        const cube = this.cubeData;
+        const cube = this.data;
         if (cube[dimensionOne]
             && cube[dimensionOne][dimensionTwo]
             && cube[dimensionOne][dimensionTwo][dimensionThree]
@@ -158,13 +191,13 @@ export class Qube {
         return <SerializedQube>{
             options: this.options,
             dimensionIndices: this.dimensionIndices,
-            cube: this.cubeData
+            cube: this.data
         };
     }
 
     static fromCube(sQube: SerializedQube) {
         const cube = new Qube(sQube.options);
-        cube.cubeData = sQube.cube;
+        cube.data = sQube.cube;
         return cube;
     }
 }

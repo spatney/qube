@@ -15,9 +15,29 @@ const qube = new Qube(qubeOptions);
 // Add some data
 qube.push([
     { year: '2017', location: 'Seattle', product: 'Apple', sales: 10 },
-    { year: '2018', location: 'Portland', product: 'Orange', sales: 20 },
-    { year: '2017', location: 'Portland', product: 'Apple', sales: 25 },
-    { year: '2017', location: 'Seattle', product: 'Apple', sales: 25 }
+    { year: '2017', location: 'Seattle', product: 'Apple', sales: 20 },
+    { year: '2018', location: 'Seattle', product: 'Apple', sales: 35 },
+    { year: '2018', location: 'Seattle', product: 'Apple', sales: 15 },
+    { year: '2019', location: 'Seattle', product: 'Apple', sales: 25 },
+    { year: '2019', location: 'Seattle', product: 'Apple', sales: 5 },
+    { year: '2017', location: 'Portland', product: 'Apple', sales: 17 },
+    { year: '2017', location: 'Portland', product: 'Apple', sales: 19 },
+    { year: '2018', location: 'Portland', product: 'Apple', sales: 31 },
+    { year: '2018', location: 'Portland', product: 'Apple', sales: 32 },
+    { year: '2019', location: 'Portland', product: 'Apple', sales: 21 },
+    { year: '2019', location: 'Portland', product: 'Apple', sales: 20 },
+    { year: '2017', location: 'Seattle', product: 'Orange', sales: 10 },
+    { year: '2017', location: 'Seattle', product: 'Orange', sales: 20 },
+    { year: '2018', location: 'Seattle', product: 'Orange', sales: 25 },
+    { year: '2018', location: 'Seattle', product: 'Orange', sales: 5 },
+    { year: '2019', location: 'Seattle', product: 'Orange', sales: 25 },
+    { year: '2019', location: 'Seattle', product: 'Orange', sales: 5 },
+    { year: '2017', location: 'Portland', product: 'Orange', sales: 7 },
+    { year: '2017', location: 'Portland', product: 'Orange', sales: 16 },
+    { year: '2018', location: 'Portland', product: 'Orange', sales: 5 },
+    { year: '2018', location: 'Portland', product: 'Orange', sales: 12 },
+    { year: '2019', location: 'Portland', product: 'Orange', sales: 11 },
+    { year: '2019', location: 'Portland', product: 'Orange', sales: 20 },
 ]);
 
 // Total Sales.
@@ -36,3 +56,23 @@ const diceQuery = {
     measure: 'm_sales' 
 };
 console.log(`Portland Orange sales in 2018: ${qube.dice(diceQuery)}`)
+
+// Total Orange sales across all years
+const years = qube.enumerateDimensions('year');
+const result = [];
+
+const sliceToEnumerateQuery = {
+    dimensions: { product: 'Orange'}, 
+    measure: 'm_sales' 
+};
+
+for(const year of years) {
+    sliceToEnumerateQuery.dimensions.year = year;
+    result.push({
+        year: year,
+        value: qube.slice(sliceToEnumerateQuery)
+    })
+}
+
+console.log(`Orange Sales Across all years`);
+console.table(result);
