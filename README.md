@@ -44,14 +44,14 @@ const sliceQuery = {
     dimensions: { product: 'Apple', location: 'Seattle'}, 
     measure: 'm_sales' 
 };
-console.log(`Total Apple sales in Seattle: ${qube.slice(sliceQuery)}`)
+console.log(`Apple sales in Seattle: ${qube.slice(sliceQuery)}`)
 
 // Total Orange sales in Portland in 2018
 const diceQuery = {
     dimensions: { product: 'Orange', location: 'Portland', year: '2018'}, 
     measure: 'm_sales' 
 };
-console.log(`Total Portland Orange sales in 2018: ${qube.dice(diceQuery)}`)
+console.log(`Portland Orange sales in 2018: ${qube.dice(diceQuery)}`)
 
 /*
 Expected Output
