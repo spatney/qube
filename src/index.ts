@@ -64,55 +64,59 @@ export class Qube {
     slice(opts: QueryOptions): number | undefined {
         const dimensionIndices = this.dimensionIndices;
         const cube = this.cubeData;
-        const options = this.options;
-
+        const measures = this.options.measures;
         const dimensions = opts.dimensions;
         const measureName = opts.measure;
+        const measure = measures.find(d => d.name === measureName);
+        const measureType = measure ? measure.type : undefined;
         const dimensionKeys = Object.keys(dimensions);
         const firstDimensionIndex = dimensionKeys.length === 2 ? dimensionIndices.findIndex(d => d === dimensionKeys[0]) : -1;
         const secondDimensionIndex = dimensionKeys.length === 2 ? dimensionIndices.findIndex(d => d === dimensionKeys[1]) : -1;
+        const firstSliceDimensionValues = [dimensions[dimensionIndices[firstDimensionIndex]]];
+        const secondSliceDimensionValues = [dimensions[dimensionIndices[secondDimensionIndex]]];
 
         let result: number | undefined;
 
         let iKeys = Object.keys(cube) || [];
 
         if (firstDimensionIndex === 0)
-            iKeys = [dimensions[dimensionIndices[firstDimensionIndex]]].filter(x => iKeys.includes(x));
+            iKeys = firstSliceDimensionValues.filter(x => iKeys.includes(x));
         else if (secondDimensionIndex === 0)
-            iKeys = [dimensions[dimensionIndices[secondDimensionIndex]]].filter(x => iKeys.includes(x));
+            iKeys = secondSliceDimensionValues.filter(x => iKeys.includes(x));
 
         for (let i = 0, iLen = iKeys.length; i < iLen; i++) {
-            let fKeys = Object.keys(cube[iKeys[i]] || {}) || [];
+            const iKey = cube[iKeys[i]];
+            let fKeys = Object.keys(iKey || {}) || [];
 
             if (firstDimensionIndex === 1)
-                fKeys = [dimensions[dimensionIndices[firstDimensionIndex]]].filter(x => fKeys.includes(x));
+                fKeys = firstSliceDimensionValues.filter(x => fKeys.includes(x));
             else if (secondDimensionIndex === 1)
-                fKeys = [dimensions[dimensionIndices[secondDimensionIndex]]].filter(x => fKeys.includes(x));
+                fKeys = secondSliceDimensionValues.filter(x => fKeys.includes(x));
 
             for (let f = 0, fLen = fKeys.length; f < fLen; f++) {
-                let kKeys = Object.keys(cube[iKeys[i]][fKeys[f]] || {}) || [];
+                const fKey = iKey[fKeys[f]];
+                let kKeys = Object.keys(fKey || {}) || [];
 
                 if (firstDimensionIndex === 2)
-                    kKeys = [dimensions[dimensionIndices[firstDimensionIndex]]].filter(x => kKeys.includes(x));
+                    kKeys = firstSliceDimensionValues.filter(x => kKeys.includes(x));
                 else if (secondDimensionIndex === 2)
-                    kKeys = [dimensions[dimensionIndices[secondDimensionIndex]]].filter(x => kKeys.includes(x));
+                    kKeys = secondSliceDimensionValues.filter(x => kKeys.includes(x));
 
                 for (let k = 0, kLen = kKeys.length; k < kLen; k++) {
-                    const diceValue = cube[iKeys[i]][fKeys[f]][kKeys[k]];
+                    const diceValue = fKey[kKeys[k]];
 
                     if (diceValue != null) {
-                        const measureValue = cube[iKeys[i]][fKeys[f]][kKeys[k]][measureName];
+                        const measureValue = diceValue[measureName];
                         if (measureValue != null) {
                             if (result == null) {
                                 result = 0;
                             }
-
-                            const measure = options.measures.find(d => d.name === measureName);
-                            if (measure) {
-                                switch (measure.type) {
+                            
+                            if (measureType) {
+                                switch (measureType) {
                                     case 'sum': result += measureValue;
                                         break;
-                                    default: throw new Error(`${measure.type} of aggregate not supported`);
+                                    default: throw new Error(`${measureType} of aggregate not supported`);
                                 }
                             }
                         }
