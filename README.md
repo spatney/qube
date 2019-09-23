@@ -126,6 +126,8 @@ List values for dimension 'year'
 1. support first, last, average
 2. support plug & play storage
 3. parallelize slice, dice & one (i.e map reduce) 
+4. hyper cube (more than 3 dimensions)
+5. high cardinality dimension cubes. (better way to deal with timestamp as a dimension)
 
 ## Contribute
 
