@@ -2,7 +2,10 @@ const Qube = require('../dist/index').Qube;
 
 const qubeOptions = { // options to initialize qube
     measures: [ // what kind of calcs do you want to store in the cube. 
-        { type: 'sum', key: 'sales', name: 'm_sales' }
+        { type: 'sum', key: 'sales', name: 'sum_sales' },
+        { type: 'count', key: 'sales', name: 'count_sales' },
+        { type: 'max', key: 'sales', name: 'max_sales' },
+        { type: 'min', key: 'sales', name: 'min_sales' }
     ],
     dimensions: [ // what are the dimensions you would query on. 
         { type: 'string', key: 'year' },
@@ -41,19 +44,19 @@ qube.push([
 ]);
 
 // Total Sales.
-console.log(`Total Sales: ${qube.one({ measure: 'm_sales' })}`);
+console.log(`Total Sales: ${qube.one({ measure: 'sum_sales' })}`);
 
 // Total Apple sales in Seattle
 const sliceQuery = {
     dimensions: { product: 'Apple', location: 'Seattle'}, 
-    measure: 'm_sales' 
+    measure: 'sum_sales' 
 };
 console.log(`Apple sales in Seattle: ${qube.slice(sliceQuery)}`)
 
 // Total Orange sales in Portland in 2018
 const diceQuery = {
     dimensions: { product: 'Orange', location: 'Portland', year: '2018'}, 
-    measure: 'm_sales' 
+    measure: 'sum_sales' 
 };
 console.log(`Portland Orange sales in 2018: ${qube.dice(diceQuery)}`)
 
@@ -63,7 +66,7 @@ const result = [];
 
 const sliceToEnumerateQuery = {
     dimensions: { product: 'Orange'}, 
-    measure: 'm_sales' 
+    measure: 'sum_sales' 
 };
 
 for(const year of years) {

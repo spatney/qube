@@ -94,12 +94,12 @@ console.table(result);
 
 ## Limitations
 
-1. Only supports 'sum' aggregation.
+1. Only supports sum, count, min, max calculation types 
 2. Only supports in-memory storage. 
 
 ## Future
 
-1. support count, min, max, average, first, last
+1. support first, last, average
 2. support plug & play storage
 3. parallelize slice, dice & one (i.e map reduce) 
 

@@ -1,5 +1,5 @@
 export interface MeasureDefinition {
-    type: 'sum';
+    type: 'sum' | 'count' | 'min' | 'max';
     key: string;
     name: string;
 }

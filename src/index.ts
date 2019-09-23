@@ -54,6 +54,24 @@ export class Qube {
                                     ? cube[dimensionOne][dimensionTwo][dimensionThree][measureName] + val
                                     : val;
                             break;
+                        case 'count':
+                            cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
+                                = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
+                                    ? cube[dimensionOne][dimensionTwo][dimensionThree][measureName] + 1
+                                    : 1;
+                            break;
+                        case 'max':
+                            cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
+                                = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
+                                    ? Math.max(cube[dimensionOne][dimensionTwo][dimensionThree][measureName], val)
+                                    : val;
+                            break;
+                        case 'min':
+                            cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
+                                = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
+                                    ? Math.min(cube[dimensionOne][dimensionTwo][dimensionThree][measureName], val)
+                                    : val;
+                            break;
                         default: throw new Error(`${type} of aggregate not supported`);
                     }
                 }
@@ -141,13 +159,14 @@ export class Qube {
                     if (diceValue != null) {
                         const measureValue = diceValue[measureName];
                         if (measureValue != null) {
-                            if (result == null) {
-                                result = 0;
-                            }
-
                             if (measureType) {
                                 switch (measureType) {
-                                    case 'sum': result += measureValue;
+                                    case 'count':
+                                    case 'sum': result = result == null ? measureValue : result += measureValue;
+                                        break;
+                                    case 'min': result = result == null ? measureValue : Math.min(result, measureValue);
+                                        break;
+                                    case 'max': result = result == null ? measureValue : Math.max(result, measureValue);
                                         break;
                                     default: throw new Error(`${measureType} of aggregate not supported`);
                                 }
