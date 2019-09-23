@@ -35,4 +35,4 @@ const diceQuery = {
     dimensions: { product: 'Orange', location: 'Portland', year: '2018'}, 
     measure: 'm_sales' 
 };
-console.log(`Total Orange sales in Portland in 2018: ${qube.dice(diceQuery)}`)
+console.log(`Total Portland Orange sales in 2018: ${qube.dice(diceQuery)}`)
