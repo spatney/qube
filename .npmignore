@@ -3,3 +3,4 @@ src/
 examples/
 tsconfig.json
 node_modules/
+.nvmrc

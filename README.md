@@ -60,7 +60,7 @@ qube.push([
 const measureToCompute = 'sum_sales'; // try also with min, max, count
 
 // Total Sales.
-console.log(`Total Sales: ${qube.one({ measure: measureToCompute })}`);
+console.log(`Total sales: ${qube.one({ measure: measureToCompute })}`);
 
 // Total Apple sales in Seattle
 const sliceQuery = {
@@ -77,24 +77,43 @@ const diceQuery = {
 console.log(`Portland Orange sales in 2018: ${qube.dice(diceQuery)}`)
 
 // Total Orange sales across all years
-const years = qube.enumerateDimensions('year');
-const result = [];
-
 const sliceToEnumerateQuery = {
     dimensions: { product: 'Orange'}, 
     measure: measureToCompute
 };
 
-for(const year of years) {
-    sliceToEnumerateQuery.dimensions.year = year;
-    result.push({
-        year: year,
-        value: qube.slice(sliceToEnumerateQuery)
-    })
-}
+console.log(`\nOrange sales across all years`);
+console.table(qube.queryWithEnumeration('year', sliceToEnumerateQuery));
 
-console.log(`Orange Sales Across all years`);
-console.table(result);
+// All unique values for years
+console.log(`\nList values for dimension 'year'`);
+console.table(qube.enumerateDimension('year'));
+
+/*
+Expected output
+
+Total sales: 411
+Apple sales in Seattle: 110
+Portland Orange sales in 2018: 17
+
+Orange sales across all years
+┌─────────┬───────┬────────┐
+│ (index) │ value │  year  │
+├─────────┼───────┼────────┤
+│    0    │  53   │ '2017' │
+│    1    │  47   │ '2018' │
+│    2    │  61   │ '2019' │
+└─────────┴───────┴────────┘
+
+List values for dimension 'year'
+┌─────────┬────────┐
+│ (index) │ Values │
+├─────────┼────────┤
+│    0    │ '2017' │
+│    1    │ '2018' │
+│    2    │ '2019' │
+└─────────┴────────┘
+*/
 ```
 
 ## Limitations

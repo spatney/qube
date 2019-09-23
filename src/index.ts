@@ -79,7 +79,25 @@ export class Qube {
         }
     }
 
-    enumerateDimensions(dimensionName: string) {
+    queryWithEnumeration(dimensionToEnumerate: string, opts: QueryOptions) {
+        const eumeration = this.enumerateDimension(dimensionToEnumerate);
+        const result = [];
+        
+        for (const item of eumeration) {
+            opts.dimensions[dimensionToEnumerate] = item;
+            const singleResult = {
+                value: Object.keys(opts.dimensions).length === 2
+                    ? this.slice(opts)
+                    : this.dice(opts)
+            };
+            singleResult[dimensionToEnumerate] = item;
+            result.push(singleResult)
+        }
+
+        return result;
+    }
+
+    enumerateDimension(dimensionName: string) {
         const dimensionIndices = this.dimensionIndices;
         const dimensionIndex = dimensionIndices.findIndex(d => d === dimensionName);
         const cube = this.data;
