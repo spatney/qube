@@ -19,7 +19,8 @@ const qubeOptions = { // options to initialize qube
         { type: 'sum', key: 'sales', name: 'sum_sales' },
         { type: 'count', key: 'sales', name: 'count_sales' },
         { type: 'max', key: 'sales', name: 'max_sales' },
-        { type: 'min', key: 'sales', name: 'min_sales' }
+        { type: 'min', key: 'sales', name: 'min_sales' },
+        { type: 'average', key: 'sales', name: 'average_sales' }
     ],
     dimensions: [ // what are the dimensions you would query on. 
         { type: 'string', key: 'year' },

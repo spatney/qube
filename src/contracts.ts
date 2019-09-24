@@ -1,7 +1,12 @@
 export interface MeasureDefinition {
-    type: 'sum' | 'count' | 'min' | 'max';
+    type: 'sum' | 'count' | 'min' | 'max' | 'average';
     key: string;
     name: string;
+}
+
+export interface AverageResult {
+    sum: number;
+    count: number
 }
 
 export interface DimensionDefinition {
@@ -30,5 +35,5 @@ export interface SerializedQube {
 }
 
 export interface QubeRow {
-    [key: string] : any;
+    [key: string]: any;
 }

@@ -3,7 +3,8 @@ import {
     QueryOptions,
     InMemoryQubeData,
     SerializedQube,
-    QubeRow
+    QubeRow,
+    AverageResult
 } from './contracts';
 
 export class Qube {
@@ -46,31 +47,39 @@ export class Qube {
                 if (val != null) {
                     const type = m.type;
                     const measureName = m.name;
+                    const currentValue = cube[dimensionOne][dimensionTwo][dimensionThree];
 
                     switch (type) {
                         case 'sum':
-                            cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
-                                = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
-                                    ? cube[dimensionOne][dimensionTwo][dimensionThree][measureName] + val
-                                    : val;
+                            currentValue[measureName] = currentValue[measureName] != null
+                                ? currentValue[measureName] + val
+                                : val;
                             break;
                         case 'count':
-                            cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
-                                = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
-                                    ? cube[dimensionOne][dimensionTwo][dimensionThree][measureName] + 1
-                                    : 1;
+                            currentValue[measureName] = currentValue[measureName] != null
+                                ? currentValue[measureName] + 1
+                                : 1;
                             break;
                         case 'max':
-                            cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
-                                = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
-                                    ? Math.max(cube[dimensionOne][dimensionTwo][dimensionThree][measureName], val)
-                                    : val;
+                            currentValue[measureName] = currentValue[measureName] != null
+                                ? Math.max(currentValue[measureName], val)
+                                : val;
                             break;
                         case 'min':
-                            cube[dimensionOne][dimensionTwo][dimensionThree][measureName]
-                                = cube[dimensionOne][dimensionTwo][dimensionThree][measureName] != null
-                                    ? Math.min(cube[dimensionOne][dimensionTwo][dimensionThree][measureName], val)
-                                    : val;
+                            currentValue[measureName] = currentValue[measureName] != null
+                                ? Math.min(currentValue[measureName], val)
+                                : val;
+                            break;
+                        case 'average':
+                            if (currentValue[measureName] != null) {
+                                currentValue[measureName].count = currentValue[measureName].count + 1;
+                                currentValue[measureName].sum = currentValue[measureName].sum + val;
+                            } else {
+                                currentValue[measureName] = {
+                                    count: 1,
+                                    sum: val
+                                }
+                            }
                             break;
                         default: throw new Error(`${type} of aggregate not supported`);
                     }
@@ -82,7 +91,7 @@ export class Qube {
     queryWithEnumeration(dimensionToEnumerate: string, opts: QueryOptions) {
         const enumeration = this.enumerateDimension(dimensionToEnumerate);
         const result = [];
-        
+
         for (const item of enumeration) {
             opts.dimensions[dimensionToEnumerate] = item;
             const singleResult = {
@@ -144,7 +153,7 @@ export class Qube {
         const firstSliceDimensionValues = [dimensions[dimensionIndices[firstDimensionIndex]]];
         const secondSliceDimensionValues = [dimensions[dimensionIndices[secondDimensionIndex]]];
 
-        let result: number | undefined;
+        let result: number | undefined | AverageResult;
 
         let iKeys = Object.keys(cube) || [];
 
@@ -180,11 +189,27 @@ export class Qube {
                             if (measureType) {
                                 switch (measureType) {
                                     case 'count':
-                                    case 'sum': result = result == null ? measureValue : result += measureValue;
+                                    case 'sum': result = result == null
+                                        ? measureValue
+                                        : result += measureValue;
                                         break;
-                                    case 'min': result = result == null ? measureValue : Math.min(result, measureValue);
+                                    case 'min': result = result == null
+                                        ? measureValue
+                                        : Math.min(<number>result, measureValue);
                                         break;
-                                    case 'max': result = result == null ? measureValue : Math.max(result, measureValue);
+                                    case 'max': result = result == null
+                                        ? measureValue
+                                        : Math.max(<number>result, measureValue);
+                                        break;
+                                    case 'average': result = result == null
+                                        ? {
+                                            sum: measureValue.sum,
+                                            count: measureValue.count
+                                        }
+                                        : {
+                                            sum: (<AverageResult>result).sum + measureValue.sum,
+                                            count: (<AverageResult>result).count + measureValue.count
+                                        };
                                         break;
                                     default: throw new Error(`${measureType} of aggregate not supported`);
                                 }
@@ -195,7 +220,11 @@ export class Qube {
             }
         }
 
-        return result;
+        if (result && measureType === 'average') {
+            return (<AverageResult>result).sum / (<AverageResult>result).count;
+        }
+
+        return <number | undefined>result;
     }
 
     dice(opts: QueryOptions): number | undefined {
