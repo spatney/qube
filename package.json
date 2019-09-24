@@ -1,6 +1,6 @@
 {
   "name": "qube",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "Simple implementation of an in-memory analytics cube. ",
   "main": "./dist/index.js",
   "scripts": {
