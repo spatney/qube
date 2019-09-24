@@ -6,8 +6,8 @@
   "scripts": {
     "build": "webpack -p",
     "watch": "webpack -p --watch",
-    "deploy": "rm -rf ./dist && tsc && npm publish",
-    "test": "rm -rf ./dist && npm run build && node ./examples/example.js"
+    "deploy": "npm run build && npm publish",
+    "test": "npm run build && node ./examples/example.js"
   },
   "repository": {
     "type": "git",
