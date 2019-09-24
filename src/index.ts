@@ -80,10 +80,10 @@ export class Qube {
     }
 
     queryWithEnumeration(dimensionToEnumerate: string, opts: QueryOptions) {
-        const eumeration = this.enumerateDimension(dimensionToEnumerate);
+        const enumeration = this.enumerateDimension(dimensionToEnumerate);
         const result = [];
         
-        for (const item of eumeration) {
+        for (const item of enumeration) {
             opts.dimensions[dimensionToEnumerate] = item;
             const singleResult = {
                 value: Object.keys(opts.dimensions).length === 2
