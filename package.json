@@ -1,8 +1,9 @@
 {
   "name": "qube",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Simple implementation of an in-memory analytics cube. ",
-  "main": "./dist/index.js",
+  "main": "./dist/qube.js",
+  "types": "./dist/qube.d.ts",
   "scripts": {
     "build": "webpack -p",
     "watch": "webpack -p --watch",
@@ -16,6 +17,8 @@
   "author": "Sachin Patney",
   "license": "MIT",
   "devDependencies": {
+    "dts-bundle": "^0.7.3",
+    "dts-bundle-webpack": "^1.0.2",
     "ts-loader": "^6.1.2",
     "typescript": "^3.6.3",
     "webpack": "^4.40.2",
