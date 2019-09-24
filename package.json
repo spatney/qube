@@ -1,11 +1,11 @@
 {
   "name": "qube",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Simple implementation of an in-memory analytics cube. ",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
+    "build": "webpack -p",
+    "watch": "webpack -p --watch",
     "deploy": "rm -rf ./dist && tsc && npm publish",
     "test": "rm -rf ./dist && npm run build && node ./examples/example.js"
   },
@@ -16,6 +16,9 @@
   "author": "Sachin Patney",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^3.6.3"
+    "ts-loader": "^6.1.2",
+    "typescript": "^3.6.3",
+    "webpack": "^4.40.2",
+    "webpack-cli": "^3.3.9"
   }
 }

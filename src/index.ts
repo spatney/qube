@@ -23,7 +23,7 @@ export class Qube {
     }
 
     push(rows: QubeRow[]) {
-        const cube = this.data;
+        const data = this.data;
         const measures = this.options.measures;
         const dimensionIndices = this.dimensionIndices;
 
@@ -37,9 +37,9 @@ export class Qube {
                 continue;
             }
 
-            cube[dimensionOne] = cube[dimensionOne] || {};
-            cube[dimensionOne][dimensionTwo] = cube[dimensionOne][dimensionTwo] || {};
-            cube[dimensionOne][dimensionTwo][dimensionThree] = cube[dimensionOne][dimensionTwo][dimensionThree] || {};
+            data[dimensionOne] = data[dimensionOne] || {};
+            data[dimensionOne][dimensionTwo] = data[dimensionOne][dimensionTwo] || {};
+            data[dimensionOne][dimensionTwo][dimensionThree] = data[dimensionOne][dimensionTwo][dimensionThree] || {};
 
             for (const m of measures) {
                 const val = row[m.key];
@@ -47,7 +47,7 @@ export class Qube {
                 if (val != null) {
                     const type = m.type;
                     const measureName = m.name;
-                    const currentValue = cube[dimensionOne][dimensionTwo][dimensionThree];
+                    const currentValue = data[dimensionOne][dimensionTwo][dimensionThree];
 
                     switch (type) {
                         case 'sum':
@@ -163,8 +163,8 @@ export class Qube {
             iKeys = secondSliceDimensionValues.filter(x => iKeys.includes(x));
 
         for (let i = 0, iLen = iKeys.length; i < iLen; i++) {
-            const iKey = cube[iKeys[i]];
-            let fKeys = Object.keys(iKey || {}) || [];
+            const iValue = cube[iKeys[i]];
+            let fKeys = Object.keys(iValue || {}) || [];
 
             if (firstDimensionIndex === 1)
                 fKeys = firstSliceDimensionValues.filter(x => fKeys.includes(x));
@@ -172,8 +172,8 @@ export class Qube {
                 fKeys = secondSliceDimensionValues.filter(x => fKeys.includes(x));
 
             for (let f = 0, fLen = fKeys.length; f < fLen; f++) {
-                const fKey = iKey[fKeys[f]];
-                let kKeys = Object.keys(fKey || {}) || [];
+                const fValue = iValue[fKeys[f]];
+                let kKeys = Object.keys(fValue || {}) || [];
 
                 if (firstDimensionIndex === 2)
                     kKeys = firstSliceDimensionValues.filter(x => kKeys.includes(x));
@@ -181,7 +181,7 @@ export class Qube {
                     kKeys = secondSliceDimensionValues.filter(x => kKeys.includes(x));
 
                 for (let k = 0, kLen = kKeys.length; k < kLen; k++) {
-                    const diceValue = fKey[kKeys[k]];
+                    const diceValue = fValue[kKeys[k]];
 
                     if (diceValue != null) {
                         const measureValue = diceValue[measureName];
