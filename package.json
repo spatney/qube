@@ -17,8 +17,10 @@
   "author": "Sachin Patney",
   "license": "MIT",
   "devDependencies": {
+    "cli-progress": "^3.8.2",
     "colors": "^1.4.0",
     "dts-bundle-webpack": "^1.0.2",
+    "object-sizeof": "^1.6.1",
     "ts-loader": "^6.1.2",
     "typescript": "^3.6.3",
     "webpack": "^4.40.2",

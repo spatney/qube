@@ -254,11 +254,10 @@ export class Qube {
     }
 
     serializeCube() {
-        return <SerializedQube>{
+        return {
             options: this.options,
-            dimensionIndices: this.dimensionIndices,
             cube: this.data
-        };
+        } as SerializedQube;
     }
 
     static fromCube(sQube: SerializedQube) {

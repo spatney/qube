@@ -4,7 +4,10 @@ const products = ['Apple', 'Orange', 'Pear'];
 
 const sampleOptions = {
     measures: [
-        { type: 'sum', key: 'sales', name: 'm_sales' }
+        { type: 'sum', key: 'sales', name: 'sum_sales' },
+        { type: 'count', key: 'sales', name: 'cnt_sales' },
+        { type: 'min', key: 'sales', name: 'min_sales' },
+        { type: 'max', key: 'sales', name: 'max_sales' }
     ],
     dimensions: [
         { type: 'string', key: 'year' },
@@ -14,7 +17,7 @@ const sampleOptions = {
 }
 
 const sampleSliceOptions = {
-    measure: 'm_sales',
+    measure: 'sum_sales',
     dimensions: {
         year: '2017',
         location: 'Seattle',
@@ -22,7 +25,7 @@ const sampleSliceOptions = {
 };
 
 const sampleDiceOptions = {
-    measure: 'm_sales',
+    measure: 'sum_sales',
     dimensions: {
         year: '2017',
         location: 'Seattle',
@@ -31,7 +34,7 @@ const sampleDiceOptions = {
 };
 
 const sampleOneOptions = {
-    measure: 'm_sales',
+    measure: 'sum_sales',
 };
 
 function getRandomInt(max) {
