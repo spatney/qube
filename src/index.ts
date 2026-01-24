@@ -4,18 +4,110 @@ import {
     InMemoryQubeData,
     SerializedQube,
     QubeRow,
-    AverageResult,
-    VarianceResult,
-    DistinctResult,
     FilterOptions,
     RollupResult,
     DimensionInfo,
-    MeasureType
+    MeasureType,
+    MeasureDefinition
 } from './contracts';
 
-export class Qube {
+// Pre-compiled measure updaters for hot path optimization
+const MEASURE_UPDATERS: Record<MeasureType, (store: any, name: string, val: any) => void> = {
+    sum: (store, name, val) => {
+        store[name] = (store[name] || 0) + val;
+    },
+    count: (store, name) => {
+        store[name] = (store[name] || 0) + 1;
+    },
+    max: (store, name, val) => {
+        const curr = store[name];
+        if (curr === undefined || val > curr) store[name] = val;
+    },
+    min: (store, name, val) => {
+        const curr = store[name];
+        if (curr === undefined || val < curr) store[name] = val;
+    },
+    average: (store, name, val) => {
+        const curr = store[name];
+        if (curr) {
+            curr.sum += val;
+            curr.count++;
+        } else {
+            store[name] = { sum: val, count: 1 };
+        }
+    },
+    first: (store, name, val) => {
+        if (store[name] === undefined) store[name] = val;
+    },
+    last: (store, name, val) => {
+        store[name] = val;
+    },
+    distinct: (store, name, val) => {
+        const curr = store[name];
+        if (curr) {
+            curr.values.add(val);
+        } else {
+            store[name] = { values: new Set([val]) };
+        }
+    },
+    variance: (store, name, val) => {
+        const curr = store[name];
+        if (curr) {
+            curr.sum += val;
+            curr.sumOfSquares += val * val;
+            curr.count++;
+        } else {
+            store[name] = { sum: val, sumOfSquares: val * val, count: 1 };
+        }
+    },
+    stddev: (store, name, val) => {
+        const curr = store[name];
+        if (curr) {
+            curr.sum += val;
+            curr.sumOfSquares += val * val;
+            curr.count++;
+        } else {
+            store[name] = { sum: val, sumOfSquares: val * val, count: 1 };
+        }
+    }
+};
 
-    private dimensionIndices: string[];
+// Pre-compiled aggregators for query path
+const MEASURE_AGGREGATORS: Record<MeasureType, (current: any, newVal: any) => any> = {
+    sum: (curr, val) => (curr || 0) + val,
+    count: (curr, val) => (curr || 0) + val,
+    min: (curr, val) => curr === undefined ? val : (val < curr ? val : curr),
+    max: (curr, val) => curr === undefined ? val : (val > curr ? val : curr),
+    first: (curr, val) => curr === undefined ? val : curr,
+    last: (_, val) => val,
+    average: (curr, val) => curr 
+        ? { sum: curr.sum + val.sum, count: curr.count + val.count }
+        : { sum: val.sum, count: val.count },
+    distinct: (curr, val) => {
+        if (!curr) return { values: new Set(val.values) };
+        for (const v of val.values) curr.values.add(v);
+        return curr;
+    },
+    variance: (curr, val) => curr
+        ? { sum: curr.sum + val.sum, sumOfSquares: curr.sumOfSquares + val.sumOfSquares, count: curr.count + val.count }
+        : { sum: val.sum, sumOfSquares: val.sumOfSquares, count: val.count },
+    stddev: (curr, val) => curr
+        ? { sum: curr.sum + val.sum, sumOfSquares: curr.sumOfSquares + val.sumOfSquares, count: curr.count + val.count }
+        : { sum: val.sum, sumOfSquares: val.sumOfSquares, count: val.count }
+};
+
+interface CompiledMeasure {
+    name: string;
+    key: string;
+    type: MeasureType;
+    updater: (store: any, name: string, val: any) => void;
+    aggregator: (current: any, newVal: any) => any;
+}
+
+export class Qube {
+    private readonly dimensionKeys: string[];
+    private readonly numDimensions: number;
+    private readonly compiledMeasures: CompiledMeasure[];
     private data: InMemoryQubeData;
     private _rowCount: number = 0;
 
@@ -23,8 +115,18 @@ export class Qube {
         if (!options.dimensions || options.dimensions.length === 0) {
             throw new Error('At least one dimension is required');
         }
-        this.dimensionIndices = options.dimensions.map(d => d.key);
-        this.data = {};
+        this.dimensionKeys = options.dimensions.map(d => d.key);
+        this.numDimensions = this.dimensionKeys.length;
+        this.data = Object.create(null); // Faster than {}
+        
+        // Pre-compile measures for faster access
+        this.compiledMeasures = options.measures.map(m => ({
+            name: m.name,
+            key: m.key,
+            type: m.type,
+            updater: MEASURE_UPDATERS[m.type],
+            aggregator: MEASURE_AGGREGATORS[m.type]
+        }));
     }
 
     get rowCount(): number {
@@ -32,45 +134,61 @@ export class Qube {
     }
 
     get dimensionCount(): number {
-        return this.dimensionIndices.length;
+        return this.numDimensions;
     }
 
-    push(rows: QubeRow[]) {
-        const data = this.data;
-        const measures = this.options.measures;
-        const dimensionIndices = this.dimensionIndices;
-        const numDimensions = dimensionIndices.length;
+    // Kept for compatibility
+    get dimensionIndices(): string[] {
+        return this.dimensionKeys;
+    }
 
-        for (const row of rows) {
-            // Collect dimension values
-            const dimValues: any[] = [];
+    push(rows: QubeRow[]): void {
+        const data = this.data;
+        const measures = this.compiledMeasures;
+        const dimKeys = this.dimensionKeys;
+        const numDims = this.numDimensions;
+        const numMeasures = measures.length;
+        const lastDimIdx = numDims - 1;
+
+        for (let r = 0, rLen = rows.length; r < rLen; r++) {
+            const row = rows[r];
+            
+            // Navigate to leaf node, creating path as needed
+            let node = data;
             let valid = true;
-            for (let i = 0; i < numDimensions; i++) {
-                const val = row[dimensionIndices[i]];
-                if (val == null) {
-                    console.error(`Skipping Row: row must contain all ${numDimensions} dimensions of the cube.`);
+            
+            for (let d = 0; d < lastDimIdx; d++) {
+                const dimVal = row[dimKeys[d]];
+                if (dimVal == null) {
                     valid = false;
                     break;
                 }
-                dimValues.push(val);
+                let next = node[dimVal];
+                if (!next) {
+                    next = Object.create(null);
+                    node[dimVal] = next;
+                }
+                node = next;
             }
+            
             if (!valid) continue;
-
-            // Navigate/create nested structure
-            let current = data;
-            for (let i = 0; i < numDimensions - 1; i++) {
-                current[dimValues[i]] = current[dimValues[i]] || {};
-                current = current[dimValues[i]];
+            
+            // Handle last dimension
+            const lastDimVal = row[dimKeys[lastDimIdx]];
+            if (lastDimVal == null) continue;
+            
+            let measureStore = node[lastDimVal];
+            if (!measureStore) {
+                measureStore = Object.create(null);
+                node[lastDimVal] = measureStore;
             }
-            const lastDimValue = dimValues[numDimensions - 1];
-            current[lastDimValue] = current[lastDimValue] || {};
-            const measureStore = current[lastDimValue];
 
-            // Update measures
-            for (const m of measures) {
-                const val = row[m.key];
+            // Update all measures - unrolled for common cases
+            for (let m = 0; m < numMeasures; m++) {
+                const measure = measures[m];
+                const val = row[measure.key];
                 if (val != null) {
-                    this.updateMeasure(measureStore, m.name, m.type, val);
+                    measure.updater(measureStore, measure.name, val);
                 }
             }
 
@@ -78,212 +196,92 @@ export class Qube {
         }
     }
 
-    private updateMeasure(store: any, measureName: string, type: MeasureType, val: any) {
-        switch (type) {
-            case 'sum':
-                store[measureName] = store[measureName] != null
-                    ? store[measureName] + val
-                    : val;
-                break;
-            case 'count':
-                store[measureName] = store[measureName] != null
-                    ? store[measureName] + 1
-                    : 1;
-                break;
-            case 'max':
-                store[measureName] = store[measureName] != null
-                    ? Math.max(store[measureName], val)
-                    : val;
-                break;
-            case 'min':
-                store[measureName] = store[measureName] != null
-                    ? Math.min(store[measureName], val)
-                    : val;
-                break;
-            case 'average':
-                if (store[measureName] != null) {
-                    store[measureName].count++;
-                    store[measureName].sum += val;
-                } else {
-                    store[measureName] = { count: 1, sum: val };
-                }
-                break;
-            case 'first':
-                if (store[measureName] == null) {
-                    store[measureName] = val;
-                }
-                break;
-            case 'last':
-                store[measureName] = val;
-                break;
-            case 'distinct':
-                if (store[measureName] == null) {
-                    store[measureName] = { values: new Set([val]) };
-                } else {
-                    store[measureName].values.add(val);
-                }
-                break;
-            case 'variance':
-            case 'stddev':
-                if (store[measureName] != null) {
-                    store[measureName].count++;
-                    store[measureName].sum += val;
-                    store[measureName].sumOfSquares += val * val;
-                } else {
-                    store[measureName] = {
-                        count: 1,
-                        sum: val,
-                        sumOfSquares: val * val
-                    };
-                }
-                break;
-            default:
-                throw new Error(`${type} aggregate not supported`);
-        }
-    }
-
-    queryWithEnumeration(dimensionToEnumerate: string, opts: QueryOptions) {
-        const enumeration = this.enumerateDimension(dimensionToEnumerate);
-        const result: any[] = [];
-        const dimensions = opts.dimensions ? { ...opts.dimensions } : {};
-
-        for (const item of enumeration) {
-            dimensions[dimensionToEnumerate] = item;
-            const singleResult: any = {
-                value: this.query({ dimensions, measure: opts.measure })
-            };
-            singleResult[dimensionToEnumerate] = item;
-            result.push(singleResult);
-        }
-
-        return result;
-    }
-
-    enumerateDimension(dimensionName: string): any[] {
-        const dimensionIndex = this.dimensionIndices.findIndex(d => d === dimensionName);
-        if (dimensionIndex === -1) {
-            throw new Error(`Dimension '${dimensionName}' not found`);
-        }
-
-        const enumerationResult: Set<any> = new Set();
-        this.traverseForEnumeration(this.data, 0, dimensionIndex, enumerationResult);
-        return Array.from(enumerationResult);
-    }
-
-    private traverseForEnumeration(node: any, depth: number, targetDepth: number, result: Set<any>) {
-        if (node == null || typeof node !== 'object') return;
-
-        const keys = Object.keys(node);
-        for (const key of keys) {
-            if (depth === targetDepth) {
-                result.add(key);
-            } else if (depth < this.dimensionIndices.length - 1) {
-                this.traverseForEnumeration(node[key], depth + 1, targetDepth, result);
-            }
-        }
-    }
-
     query(opts: QueryOptions): number | undefined {
         const measureName = opts.measure;
-        const measure = this.options.measures.find(d => d.name === measureName);
+        const measure = this.compiledMeasures.find(m => m.name === measureName);
         if (!measure) {
             throw new Error(`Measure '${measureName}' not found`);
         }
 
-        const dimensions = opts.dimensions || {};
-        const fixedDimIndices: number[] = [];
-        const fixedDimValues: any[] = [];
+        const dimensions = opts.dimensions;
+        if (!dimensions || Object.keys(dimensions).length === 0) {
+            // Full aggregation - use optimized path
+            return this.aggregateAll(measure);
+        }
 
-        for (const [key, value] of Object.entries(dimensions)) {
-            const idx = this.dimensionIndices.findIndex(d => d === key);
+        // Build fixed dimension lookup
+        const fixedDims = new Map<number, any>();
+        for (const key in dimensions) {
+            const idx = this.dimensionKeys.indexOf(key);
             if (idx !== -1) {
-                fixedDimIndices.push(idx);
-                fixedDimValues.push(value);
+                fixedDims.set(idx, dimensions[key]);
             }
         }
 
         let result: any;
-        this.traverseForQuery(this.data, 0, fixedDimIndices, fixedDimValues, measureName, measure.type, (val) => {
-            result = this.aggregateMeasure(result, val, measure.type);
+        this.traverseQuery(this.data, 0, fixedDims, measure, (val) => {
+            result = measure.aggregator(result, val);
         });
 
         return this.finalizeMeasure(result, measure.type);
     }
 
-    private traverseForQuery(
+    private aggregateAll(measure: CompiledMeasure): number | undefined {
+        let result: any;
+        const stack: any[] = [this.data];
+        const depthStack: number[] = [0];
+        const targetDepth = this.numDimensions;
+
+        while (stack.length > 0) {
+            const node = stack.pop()!;
+            const depth = depthStack.pop()!;
+
+            if (depth === targetDepth) {
+                const val = node[measure.name];
+                if (val != null) {
+                    result = measure.aggregator(result, val);
+                }
+            } else {
+                const keys = Object.keys(node);
+                for (let i = 0, len = keys.length; i < len; i++) {
+                    const child = node[keys[i]];
+                    if (child != null) {
+                        stack.push(child);
+                        depthStack.push(depth + 1);
+                    }
+                }
+            }
+        }
+
+        return this.finalizeMeasure(result, measure.type);
+    }
+
+    private traverseQuery(
         node: any,
         depth: number,
-        fixedIndices: number[],
-        fixedValues: any[],
-        measureName: string,
-        measureType: MeasureType,
+        fixedDims: Map<number, any>,
+        measure: CompiledMeasure,
         callback: (val: any) => void
-    ) {
+    ): void {
         if (node == null) return;
 
-        if (depth === this.dimensionIndices.length) {
-            const val = node[measureName];
-            if (val != null) {
-                callback(val);
-            }
+        if (depth === this.numDimensions) {
+            const val = node[measure.name];
+            if (val != null) callback(val);
             return;
         }
 
-        const fixedIdx = fixedIndices.indexOf(depth);
-        if (fixedIdx !== -1) {
-            const key = fixedValues[fixedIdx];
-            if (node[key] != null) {
-                this.traverseForQuery(node[key], depth + 1, fixedIndices, fixedValues, measureName, measureType, callback);
+        const fixedVal = fixedDims.get(depth);
+        if (fixedVal !== undefined) {
+            const child = node[fixedVal];
+            if (child != null) {
+                this.traverseQuery(child, depth + 1, fixedDims, measure, callback);
             }
         } else {
-            for (const key of Object.keys(node)) {
-                this.traverseForQuery(node[key], depth + 1, fixedIndices, fixedValues, measureName, measureType, callback);
+            const keys = Object.keys(node);
+            for (let i = 0, len = keys.length; i < len; i++) {
+                this.traverseQuery(node[keys[i]], depth + 1, fixedDims, measure, callback);
             }
-        }
-    }
-
-    private aggregateMeasure(current: any, newVal: any, type: MeasureType): any {
-        if (current == null) {
-            if (type === 'distinct') {
-                return { values: new Set(newVal.values) };
-            }
-            if (type === 'average' || type === 'variance' || type === 'stddev') {
-                return { ...newVal };
-            }
-            return newVal;
-        }
-
-        switch (type) {
-            case 'sum':
-            case 'count':
-                return current + newVal;
-            case 'min':
-                return Math.min(current, newVal);
-            case 'max':
-                return Math.max(current, newVal);
-            case 'first':
-                return current;
-            case 'last':
-                return newVal;
-            case 'average':
-                return {
-                    sum: current.sum + newVal.sum,
-                    count: current.count + newVal.count
-                };
-            case 'distinct':
-                for (const v of newVal.values) {
-                    current.values.add(v);
-                }
-                return current;
-            case 'variance':
-            case 'stddev':
-                return {
-                    sum: current.sum + newVal.sum,
-                    sumOfSquares: current.sumOfSquares + newVal.sumOfSquares,
-                    count: current.count + newVal.count
-                };
-            default:
-                throw new Error(`${type} aggregate not supported`);
         }
     }
 
@@ -295,18 +293,64 @@ export class Qube {
                 return result.sum / result.count;
             case 'distinct':
                 return result.values.size;
-            case 'variance':
+            case 'variance': {
                 if (result.count < 2) return 0;
                 const mean = result.sum / result.count;
                 return (result.sumOfSquares / result.count) - (mean * mean);
-            case 'stddev':
+            }
+            case 'stddev': {
                 if (result.count < 2) return 0;
                 const avg = result.sum / result.count;
                 const variance = (result.sumOfSquares / result.count) - (avg * avg);
                 return Math.sqrt(variance);
+            }
             default:
                 return result;
         }
+    }
+
+    queryWithEnumeration(dimensionToEnumerate: string, opts: QueryOptions): any[] {
+        const enumeration = this.enumerateDimension(dimensionToEnumerate);
+        const result: any[] = new Array(enumeration.length);
+        const baseDims = opts.dimensions ? { ...opts.dimensions } : {};
+
+        for (let i = 0, len = enumeration.length; i < len; i++) {
+            const item = enumeration[i];
+            baseDims[dimensionToEnumerate] = item;
+            result[i] = {
+                value: this.query({ dimensions: { ...baseDims }, measure: opts.measure }),
+                [dimensionToEnumerate]: item
+            };
+        }
+
+        return result;
+    }
+
+    enumerateDimension(dimensionName: string): any[] {
+        const dimensionIndex = this.dimensionKeys.indexOf(dimensionName);
+        if (dimensionIndex === -1) {
+            throw new Error(`Dimension '${dimensionName}' not found`);
+        }
+
+        const result = new Set<any>();
+        const stack: { node: any; depth: number }[] = [{ node: this.data, depth: 0 }];
+
+        while (stack.length > 0) {
+            const { node, depth } = stack.pop()!;
+            if (node == null) continue;
+
+            const keys = Object.keys(node);
+            for (let i = 0, len = keys.length; i < len; i++) {
+                const key = keys[i];
+                if (depth === dimensionIndex) {
+                    result.add(key);
+                } else if (depth < this.numDimensions - 1) {
+                    stack.push({ node: node[key], depth: depth + 1 });
+                }
+            }
+        }
+
+        return Array.from(result);
     }
 
     slice(opts: QueryOptions): number | undefined {
@@ -314,65 +358,67 @@ export class Qube {
     }
 
     dice(opts: QueryOptions): number | undefined {
-        const dimensions = opts.dimensions || {};
+        const dimensions = opts.dimensions;
+        if (!dimensions) return undefined;
+        
         const measureName = opts.measure;
-        const measure = this.options.measures.find(d => d.name === measureName);
+        const measure = this.compiledMeasures.find(m => m.name === measureName);
         if (!measure) return undefined;
 
-        // Navigate directly to the cell
-        let current = this.data;
-        for (const dimKey of this.dimensionIndices) {
-            const dimValue = dimensions[dimKey];
-            if (dimValue == null || current[dimValue] == null) {
-                return undefined;
-            }
-            current = current[dimValue];
+        // Direct navigation - O(d) where d = number of dimensions
+        let node = this.data;
+        for (let i = 0; i < this.numDimensions; i++) {
+            const dimVal = dimensions[this.dimensionKeys[i]];
+            if (dimVal == null) return undefined;
+            node = node[dimVal];
+            if (node == null) return undefined;
         }
 
-        const val = current[measureName];
+        const val = node[measureName];
         return this.finalizeMeasure(val, measure.type);
     }
 
     one(opts: QueryOptions): number | undefined {
-        return this.query({ dimensions: {}, measure: opts.measure });
+        const measure = this.compiledMeasures.find(m => m.name === opts.measure);
+        if (!measure) {
+            throw new Error(`Measure '${opts.measure}' not found`);
+        }
+        return this.aggregateAll(measure);
     }
 
     rollup(dimensionToRollup: string, opts: QueryOptions): RollupResult[] {
-        const results: RollupResult[] = [];
+        const values = this.enumerateDimension(dimensionToRollup);
+        const results: RollupResult[] = new Array(values.length + 1);
         const baseQuery = opts.dimensions ? { ...opts.dimensions } : {};
         delete baseQuery[dimensionToRollup];
 
-        const values = this.enumerateDimension(dimensionToRollup);
-        for (const val of values) {
-            const dims = { ...baseQuery, [dimensionToRollup]: val };
-            results.push({
+        for (let i = 0, len = values.length; i < len; i++) {
+            const val = values[i];
+            results[i] = {
                 dimensions: { [dimensionToRollup]: val },
-                value: this.query({ dimensions: dims, measure: opts.measure })
-            });
+                value: this.query({ dimensions: { ...baseQuery, [dimensionToRollup]: val }, measure: opts.measure })
+            };
         }
 
-        // Add total
-        results.push({
+        results[values.length] = {
             dimensions: { [dimensionToRollup]: '__TOTAL__' },
             value: this.query({ dimensions: baseQuery, measure: opts.measure })
-        });
+        };
 
         return results;
     }
 
     drilldown(dimensionToDrill: string, opts: QueryOptions): RollupResult[] {
+        const values = this.enumerateDimension(dimensionToDrill);
         const results: RollupResult[] = [];
         const baseQuery = opts.dimensions ? { ...opts.dimensions } : {};
 
-        const values = this.enumerateDimension(dimensionToDrill);
-        for (const val of values) {
+        for (let i = 0, len = values.length; i < len; i++) {
+            const val = values[i];
             const dims = { ...baseQuery, [dimensionToDrill]: val };
             const value = this.query({ dimensions: dims, measure: opts.measure });
             if (value != null) {
-                results.push({
-                    dimensions: { ...baseQuery, [dimensionToDrill]: val },
-                    value
-                });
+                results.push({ dimensions: dims, value });
             }
         }
 
@@ -381,66 +427,68 @@ export class Qube {
 
     filter(opts: FilterOptions): QubeRow[] {
         const results: QubeRow[] = [];
-        this.traverseForFilter(this.data, 0, {}, opts, results);
+        const filterDims = opts.dimensions;
+        
+        // Pre-process filter dimensions for faster lookup
+        const filterMap = new Map<number, any>();
+        if (filterDims) {
+            for (const key in filterDims) {
+                const idx = this.dimensionKeys.indexOf(key);
+                if (idx !== -1) {
+                    filterMap.set(idx, filterDims[key]);
+                }
+            }
+        }
+
+        this.traverseFilter(this.data, 0, Object.create(null), filterMap, opts.predicate, results);
         return results;
     }
 
-    private traverseForFilter(
+    private traverseFilter(
         node: any,
         depth: number,
-        currentDims: { [key: string]: any },
-        opts: FilterOptions,
+        currentDims: Record<string, any>,
+        filterMap: Map<number, any>,
+        predicate: FilterOptions['predicate'],
         results: QubeRow[]
-    ) {
+    ): void {
         if (node == null) return;
 
-        if (depth === this.dimensionIndices.length) {
-            // Check predicate
-            if (opts.predicate && !opts.predicate(currentDims, node)) {
-                return;
-            }
-
-            // Check dimension filters
-            if (opts.dimensions) {
-                for (const [key, value] of Object.entries(opts.dimensions)) {
-                    const currentVal = currentDims[key];
-                    if (Array.isArray(value)) {
-                        if (!value.includes(currentVal)) return;
-                    } else if (currentVal !== value) {
-                        return;
-                    }
-                }
-            }
-
+        if (depth === this.numDimensions) {
+            if (predicate && !predicate(currentDims, node)) return;
             results.push({ ...currentDims, ...node });
             return;
         }
 
-        const dimKey = this.dimensionIndices[depth];
+        const dimKey = this.dimensionKeys[depth];
+        const filterVal = filterMap.get(depth);
 
-        // If this dimension has a filter value, only traverse that
-        if (opts.dimensions && opts.dimensions[dimKey] != null) {
-            const filterVal = opts.dimensions[dimKey];
+        if (filterVal !== undefined) {
             if (Array.isArray(filterVal)) {
-                for (const v of filterVal) {
+                for (let i = 0, len = filterVal.length; i < len; i++) {
+                    const v = filterVal[i];
                     if (node[v] != null) {
-                        this.traverseForFilter(node[v], depth + 1, { ...currentDims, [dimKey]: v }, opts, results);
+                        currentDims[dimKey] = v;
+                        this.traverseFilter(node[v], depth + 1, currentDims, filterMap, predicate, results);
                     }
                 }
-            } else {
-                if (node[filterVal] != null) {
-                    this.traverseForFilter(node[filterVal], depth + 1, { ...currentDims, [dimKey]: filterVal }, opts, results);
-                }
+            } else if (node[filterVal] != null) {
+                currentDims[dimKey] = filterVal;
+                this.traverseFilter(node[filterVal], depth + 1, currentDims, filterMap, predicate, results);
             }
         } else {
-            for (const key of Object.keys(node)) {
-                this.traverseForFilter(node[key], depth + 1, { ...currentDims, [dimKey]: key }, opts, results);
+            const keys = Object.keys(node);
+            for (let i = 0, len = keys.length; i < len; i++) {
+                const key = keys[i];
+                currentDims[dimKey] = key;
+                this.traverseFilter(node[key], depth + 1, currentDims, filterMap, predicate, results);
             }
         }
+        delete currentDims[dimKey];
     }
 
-    clear() {
-        this.data = {};
+    clear(): void {
+        this.data = Object.create(null);
         this._rowCount = 0;
     }
 
@@ -470,7 +518,7 @@ export class Qube {
         });
     }
 
-    getMeasureInfo() {
+    getMeasureInfo(): { name: string; key: string; type: MeasureType }[] {
         return this.options.measures.map(m => ({
             name: m.name,
             key: m.key,
@@ -479,26 +527,24 @@ export class Qube {
     }
 
     serializeCube(): SerializedQube {
-        // Convert Sets to arrays for JSON serialization
-        const serializableData = this.makeSerializable(this.data);
         return {
             options: this.options,
-            dimensionIndices: this.dimensionIndices,
-            cube: serializableData,
+            dimensionIndices: this.dimensionKeys,
+            cube: this.makeSerializable(this.data),
             rowCount: this._rowCount
         };
     }
 
     private makeSerializable(node: any): any {
-        if (node == null) return node;
-        if (typeof node !== 'object') return node;
-
+        if (node == null || typeof node !== 'object') return node;
         if (node.values instanceof Set) {
             return { values: Array.from(node.values) };
         }
 
         const result: any = {};
-        for (const key of Object.keys(node)) {
+        const keys = Object.keys(node);
+        for (let i = 0, len = keys.length; i < len; i++) {
+            const key = keys[i];
             result[key] = this.makeSerializable(node[key]);
         }
         return result;
@@ -506,23 +552,22 @@ export class Qube {
 
     static fromCube(sQube: SerializedQube): Qube {
         const cube = new Qube(sQube.options);
-        cube.data = Qube.deserializeCube(sQube.cube, cube.options.measures);
+        cube.data = Qube.deserializeCube(sQube.cube);
         cube._rowCount = sQube.rowCount || 0;
         return cube;
     }
 
-    private static deserializeCube(node: any, measures: any[]): any {
-        if (node == null) return node;
-        if (typeof node !== 'object') return node;
-
-        // Check if this is a serialized distinct measure (has values array)
+    private static deserializeCube(node: any): any {
+        if (node == null || typeof node !== 'object') return node;
         if (node.values && Array.isArray(node.values)) {
             return { values: new Set(node.values) };
         }
 
-        const result: any = {};
-        for (const key of Object.keys(node)) {
-            result[key] = Qube.deserializeCube(node[key], measures);
+        const result: any = Object.create(null);
+        const keys = Object.keys(node);
+        for (let i = 0, len = keys.length; i < len; i++) {
+            const key = keys[i];
+            result[key] = Qube.deserializeCube(node[key]);
         }
         return result;
     }

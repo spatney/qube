@@ -1,31 +1,37 @@
-<span class="badge-npmversion"><a href="https://npmjs.org/package/qube" title="View this project on NPM"><img src="https://img.shields.io/npm/v/qube.svg" alt="NPM version" /></a></span>
-<span class="badge-npmdownloads"><a href="https://npmjs.org/package/qube" title="View this project on NPM"><img src="https://img.shields.io/npm/dm/qube.svg" alt="NPM downloads" /></a></span>
+[![NPM version](https://img.shields.io/npm/v/qube.svg)](https://npmjs.org/package/qube)
+[![NPM downloads](https://img.shields.io/npm/dm/qube.svg)](https://npmjs.org/package/qube)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# <img src="https://envy.azureedge.net/github/cube.png" width="40" height="40">ube 
+```
+   ╔═══════════════╗
+   ║   ◇  QUBE  ◇  ║
+   ╚═══════════════╝
+```
 
-## What is this?
+> **Powerful in-memory OLAP cube for JavaScript/TypeScript**
 
-A powerful in-memory analytics cube (OLAP) implementation for JavaScript/TypeScript with support for N-dimensional hypercubes, multiple aggregation types, and flexible querying.
+---
 
-## Features
+## ✨ Features
 
-- **Hypercube Support**: 1 to N dimensions (not limited to 3!)
-- **Rich Aggregations**: sum, count, min, max, average, first, last, distinct, variance, stddev
-- **Flexible Querying**: slice, dice, query, rollup, drilldown, filter
-- **Dimension Operations**: enumerate, get dimension info
-- **Serialization**: save and restore cubes
-- **TypeScript**: full type definitions included
+- 🔷 **Hypercube Support** — 1 to N dimensions (not limited to 3!)
+- 📊 **Rich Aggregations** — sum, count, min, max, average, first, last, distinct, variance, stddev
+- 🔍 **Flexible Querying** — slice, dice, query, rollup, drilldown, filter
+- 📋 **Dimension Operations** — enumerate, get dimension info
+- 💾 **Serialization** — save and restore cubes
+- 📝 **TypeScript** — full type definitions included
 
-## Installation
+## 📦 Installation
 
 ```bash
 npm install qube
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ```javascript
-const Qube = require('qube').Qube;
+import { Qube } from 'qube';
+// or: const { Qube } = require('qube');
 
 const qube = new Qube({
     measures: [
@@ -49,22 +55,22 @@ qube.push([
 ]);
 
 // Query total
-console.log(qube.one({ measure: 'total_sales' })); // 450
+qube.one({ measure: 'total_sales' }); // → 450
 
 // Query with partial dimensions (slice)
-console.log(qube.query({ 
+qube.query({ 
     measure: 'total_sales', 
     dimensions: { year: '2023', product: 'Apple' } 
-})); // 220
+}); // → 220
 
 // Query specific cell (dice)
-console.log(qube.dice({ 
+qube.dice({ 
     measure: 'total_sales', 
     dimensions: { year: '2023', location: 'Seattle', product: 'Apple' } 
-})); // 100
+}); // → 100
 ```
 
-## Measure Types
+## 📊 Measure Types
 
 | Type | Description |
 |------|-------------|
@@ -79,33 +85,33 @@ console.log(qube.dice({
 | `variance` | Population variance |
 | `stddev` | Population standard deviation |
 
-## API Reference
+## 📖 API Reference
 
 ### Constructor
 
 ```javascript
-new Qube(options)
+const qube = new Qube({ measures, dimensions })
 ```
 
-Options:
-- `measures`: Array of measure definitions `{ type, key, name }`
-- `dimensions`: Array of dimension definitions `{ type, key }`
+| Option | Description |
+|--------|-------------|
+| `measures` | Array of `{ type, key, name }` |
+| `dimensions` | Array of `{ type, key }` |
 
 ### Properties
 
-- `rowCount`: Number of rows pushed
-- `dimensionCount`: Number of dimensions
+| Property | Description |
+|----------|-------------|
+| `rowCount` | Number of rows pushed |
+| `dimensionCount` | Number of dimensions |
 
 ### Methods
 
 #### Data Operations
 
 ```javascript
-// Add rows
-qube.push(rows)
-
-// Clear all data
-qube.clear()
+qube.push(rows)    // Add rows
+qube.clear()       // Clear all data
 ```
 
 #### Querying
@@ -117,7 +123,7 @@ qube.one({ measure: 'total_sales' })
 // Query with any combination of dimensions
 qube.query({ measure: 'total_sales', dimensions: { year: '2023' } })
 
-// Slice (same as query, kept for compatibility)
+// Slice (alias for query)
 qube.slice({ measure: 'total_sales', dimensions: { year: '2023', location: 'Seattle' } })
 
 // Dice - query specific cell (all dimensions provided)
@@ -129,22 +135,23 @@ qube.dice({ measure: 'total_sales', dimensions: { year: '2023', location: 'Seatt
 ```javascript
 // Rollup - aggregate by dimension with totals
 qube.rollup('year', { measure: 'total_sales' })
-// Returns: [{ dimensions: { year: '2023' }, value: 300 }, { dimensions: { year: '__TOTAL__' }, value: 450 }]
+// → [{ dimensions: { year: '2023' }, value: 300 }, 
+//    { dimensions: { year: '__TOTAL__' }, value: 450 }]
 
 // Drilldown - break down by a dimension
 qube.drilldown('product', { measure: 'total_sales', dimensions: { year: '2023' } })
-// Returns: [{ dimensions: { year: '2023', product: 'Apple' }, value: 220 }, ...]
+// → [{ dimensions: { year: '2023', product: 'Apple' }, value: 220 }, ...]
 ```
 
 #### Enumeration
 
 ```javascript
 // Get unique values for a dimension
-qube.enumerateDimension('year') // ['2023', '2024']
+qube.enumerateDimension('year') // → ['2023', '2024']
 
 // Query across all values of a dimension
 qube.queryWithEnumeration('year', { measure: 'total_sales' })
-// Returns: [{ value: 300, year: '2023' }, { value: 150, year: '2024' }]
+// → [{ value: 300, year: '2023' }, { value: 150, year: '2024' }]
 ```
 
 #### Filter
@@ -163,29 +170,24 @@ qube.filter({ predicate: (dims, measures) => measures.total_sales > 100 })
 #### Metadata
 
 ```javascript
-// Get dimension info
 qube.getDimensionInfo()
-// Returns: [{ key: 'year', type: 'string', cardinality: 2, values: ['2023', '2024'] }, ...]
+// → [{ key: 'year', type: 'string', cardinality: 2, values: ['2023', '2024'] }, ...]
 
 qube.getDimensionInfo('year')
-// Returns: { key: 'year', type: 'string', cardinality: 2, values: ['2023', '2024'] }
+// → { key: 'year', type: 'string', cardinality: 2, values: ['2023', '2024'] }
 
-// Get measure info
 qube.getMeasureInfo()
-// Returns: [{ name: 'total_sales', key: 'sales', type: 'sum' }, ...]
+// → [{ name: 'total_sales', key: 'sales', type: 'sum' }, ...]
 ```
 
 #### Serialization
 
 ```javascript
-// Serialize cube
-const data = qube.serializeCube()
-
-// Restore cube
-const restored = Qube.fromCube(data)
+const data = qube.serializeCube()   // Serialize
+const restored = Qube.fromCube(data) // Restore
 ```
 
-## Hypercube Example (4+ Dimensions)
+## 🔷 Hypercube Example (N Dimensions)
 
 ```javascript
 const qube = new Qube({
@@ -211,11 +213,15 @@ qube.query({
 });
 ```
 
-## Limitations
+## ⚠️ Limitations
 
-1. Only supports in-memory storage
-2. All data must fit in memory
+- In-memory storage only
+- All data must fit in memory
 
-## Contribute
+## 🤝 Contributing
 
-Contributions are welcome! Please discuss changes through issues first.
+Contributions welcome! Please open an issue to discuss changes first.
+
+## 📄 License
+
+MIT
