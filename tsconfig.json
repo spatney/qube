@@ -1,17 +1,20 @@
 {
     "compilerOptions": {
-        "lib": [
-            "es2016",
-            "dom"
-        ],
-        "outDir": "./dist/",
+        "lib": ["ES2020"],
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "outDir": "./dist",
         "declaration": true,
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "removeComments": true,
-        "target": "es5"
+        "declarationMap": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "types": ["node"]
     },
-    "include": [
-        "src"
-    ]
+    "include": ["src"],
+    "exclude": ["node_modules", "dist", "examples", "**/*.test.ts"]
 }

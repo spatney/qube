@@ -1,5 +1,4 @@
-const Qube = require('../dist/qube').Qube;
-require('colors');
+const Qube = require('../dist/index.js').Qube;
 
 const qubeOptions = { // options to initialize qube
     measures: [ // what kind of calcs do you want to store in the cube. 
@@ -48,21 +47,21 @@ qube.push([
 const measureToCompute = 'sum_sales'; // try also with min, max, count
 
 // Total Sales.
-console.log(`\nTotal sales: ` + ` ${qube.one({ measure: measureToCompute })} `.bgRed);
+console.log(`\nTotal sales: ${qube.one({ measure: measureToCompute })}`);
 
 // Total Apple sales in Seattle
 const sliceQuery = {
     dimensions: { product: 'Apple', location: 'Seattle'}, 
     measure: measureToCompute 
 };
-console.log(`Apple sales in Seattle: ` + ` ${qube.slice(sliceQuery)} `.bgRed)
+console.log(`Apple sales in Seattle: ${qube.slice(sliceQuery)}`);
 
 // Total Orange sales in Portland in 2018
 const diceQuery = {
     dimensions: { product: 'Orange', location: 'Portland', year: '2018'}, 
     measure: measureToCompute
 };
-console.log(`Portland Orange sales in 2018: ` + ` ${qube.dice(diceQuery)} `.bgRed)
+console.log(`Portland Orange sales in 2018: ${qube.dice(diceQuery)}`);
 
 // Total Orange sales across all years
 const sliceToEnumerateQuery = {
