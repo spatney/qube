@@ -415,5 +415,28 @@ describe('Performance Tests', () => {
             expect(restored.one({ measure: 'total' })).toBe(qube.one({ measure: 'total' }));
             expect(restoreTime).toBeLessThan(100);
         });
+
+        it('should compress efficiently', async () => {
+            const json = JSON.stringify(qube.serializeCube());
+            
+            const compressStart = performance.now();
+            const compressed = await qube.serializeCompressed();
+            const compressTime = performance.now() - compressStart;
+            
+            const decompressStart = performance.now();
+            const restored = await Qube.fromCompressed(compressed);
+            const decompressTime = performance.now() - decompressStart;
+
+            const ratio = (1 - compressed.length / json.length) * 100;
+
+            console.log(`\n📊 Compression Performance:`);
+            console.log(`   Uncompressed: ${formatBytes(json.length)}`);
+            console.log(`   Compressed: ${formatBytes(compressed.length)} (${ratio.toFixed(1)}% smaller)`);
+            console.log(`   Compress time: ${compressTime.toFixed(2)} ms`);
+            console.log(`   Decompress time: ${decompressTime.toFixed(2)} ms`);
+            
+            expect(compressed.length).toBeLessThan(json.length);
+            expect(restored.one({ measure: 'total' })).toBe(qube.one({ measure: 'total' }));
+        });
     });
 });

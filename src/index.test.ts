@@ -393,6 +393,46 @@ describe('Qube', () => {
 
             expect(restored.one({ measure: 'total' })).toBe(100);
         });
+
+        it('should compress and decompress (async)', async () => {
+            const qube = new Qube({
+                measures: [{ type: 'sum', key: 'value', name: 'total' }],
+                dimensions: [{ type: 'string', key: 'key' }],
+            });
+
+            qube.push([
+                { key: 'A', value: 100 },
+                { key: 'B', value: 200 },
+            ]);
+
+            const compressed = await qube.serializeCompressed();
+            const json = JSON.stringify(qube.serializeCube());
+            
+            // Compressed should be smaller
+            expect(compressed.length).toBeLessThan(json.length);
+            
+            const restored = await Qube.fromCompressed(compressed);
+            expect(restored.one({ measure: 'total' })).toBe(300);
+            expect(restored.rowCount).toBe(2);
+        });
+
+        it('should compress and decompress (sync)', () => {
+            const qube = new Qube({
+                measures: [{ type: 'sum', key: 'value', name: 'total' }],
+                dimensions: [{ type: 'string', key: 'key' }],
+            });
+
+            qube.push([
+                { key: 'A', value: 100 },
+                { key: 'B', value: 200 },
+            ]);
+
+            const compressed = qube.serializeCompressedSync();
+            const restored = Qube.fromCompressedSync(compressed);
+            
+            expect(restored.one({ measure: 'total' })).toBe(300);
+            expect(restored.rowCount).toBe(2);
+        });
     });
 
     describe('Enumerate Dimension', () => {

@@ -535,6 +535,49 @@ export class Qube {
         };
     }
 
+    /**
+     * Serialize and compress the cube using gzip.
+     * Returns a Buffer that can be written to disk or sent over network.
+     */
+    async serializeCompressed(): Promise<Buffer> {
+        const { gzip } = await import('zlib');
+        const { promisify } = await import('util');
+        const gzipAsync = promisify(gzip);
+        
+        const json = JSON.stringify(this.serializeCube());
+        return gzipAsync(Buffer.from(json, 'utf-8'));
+    }
+
+    /**
+     * Synchronous version of serializeCompressed.
+     */
+    serializeCompressedSync(): Buffer {
+        const { gzipSync } = require('zlib') as typeof import('zlib');
+        const json = JSON.stringify(this.serializeCube());
+        return gzipSync(Buffer.from(json, 'utf-8'));
+    }
+
+    /**
+     * Restore a cube from compressed data.
+     */
+    static async fromCompressed(data: Buffer): Promise<Qube> {
+        const { gunzip } = await import('zlib');
+        const { promisify } = await import('util');
+        const gunzipAsync = promisify(gunzip);
+        
+        const json = (await gunzipAsync(data)).toString('utf-8');
+        return Qube.fromCube(JSON.parse(json));
+    }
+
+    /**
+     * Synchronous version of fromCompressed.
+     */
+    static fromCompressedSync(data: Buffer): Qube {
+        const { gunzipSync } = require('zlib') as typeof import('zlib');
+        const json = gunzipSync(data).toString('utf-8');
+        return Qube.fromCube(JSON.parse(json));
+    }
+
     private makeSerializable(node: any): any {
         if (node == null || typeof node !== 'object') return node;
         if (node.values instanceof Set) {

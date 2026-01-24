@@ -1,6 +1,6 @@
 {
   "name": "qube",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Powerful in-memory analytics cube (OLAP) with N-dimensional hypercube support",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

@@ -229,6 +229,24 @@ metric('Serialize', fmt.ms(serializeTime));
 metric('JSON size', fmt.bytes(jsonStr.length));
 metric('Deserialize', fmt.ms(deserializeTime));
 
+// Compression
+header('COMPRESSION');
+
+const compressStart = performance.now();
+const compressed = qube.serializeCompressedSync();
+const compressTime = performance.now() - compressStart;
+
+const decompressStart = performance.now();
+const restoredFromCompressed = Qube.fromCompressedSync(compressed);
+const decompressTime = performance.now() - decompressStart;
+
+const ratio = ((1 - compressed.length / jsonStr.length) * 100).toFixed(1);
+
+metric('Compressed size', fmt.bytes(compressed.length), `(${ratio}% smaller)`);
+metric('Compress time', fmt.ms(compressTime));
+metric('Decompress time', fmt.ms(decompressTime));
+metric('Verified', restoredFromCompressed.rowCount === qube.rowCount ? '✓' : '✗');
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  SUMMARY
 // ─────────────────────────────────────────────────────────────────────────────

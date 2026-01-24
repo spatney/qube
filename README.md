@@ -183,8 +183,22 @@ qube.getMeasureInfo()
 #### Serialization
 
 ```javascript
-const data = qube.serializeCube()   // Serialize
-const restored = Qube.fromCube(data) // Restore
+// Basic serialization
+const data = qube.serializeCube()   // Serialize to object
+const restored = Qube.fromCube(data) // Restore from object
+
+// Compressed serialization (gzip) - ~80% smaller
+const compressed = await qube.serializeCompressed()     // Returns Buffer
+const restored = await Qube.fromCompressed(compressed)  // Restore from Buffer
+
+// Sync versions also available
+const compressed = qube.serializeCompressedSync()
+const restored = Qube.fromCompressedSync(compressed)
+
+// Save to file
+const fs = require('fs');
+fs.writeFileSync('cube.gz', qube.serializeCompressedSync());
+const loaded = Qube.fromCompressedSync(fs.readFileSync('cube.gz'));
 ```
 
 ## 🔷 Hypercube Example (N Dimensions)
