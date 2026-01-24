@@ -12,8 +12,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
-        "isolatedModules": true,
-        "types": ["node"]
+        "isolatedModules": true
     },
     "include": ["src"],
     "exclude": ["node_modules", "dist", "examples", "**/*.test.ts"]
